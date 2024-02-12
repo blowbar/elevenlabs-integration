@@ -1,7 +1,6 @@
 require('dotenv').config()
 const express = require('express')
 const axios = require('axios')
-const jwt = require('jsonwebtoken')
 const app = express()
 const port = process.env.PORT || 3000
 app.use(express.urlencoded({ extended: true }))
@@ -16,22 +15,9 @@ app.use((error, req, res, next) => {
 })
 
 app.post('/synthesize', async (req, res) => {
-  let text = req.body.text || null
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).send({ error: 'Authorization header missing' });
-  }
-
-  const token = authHeader.split(' ')[1]; // Extract token from 'Bearer <token>' format
-  if (!token) {
-    return res.status(401).send({ error: 'Invalid token' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.SECRET_TOKEN); 
-     // Assuming you'll store your secret token as an environment variable
-  } catch (err) {
-    return res.status(403).send({ error: 'Unauthorized' });
+  const authKey = req.headers['x-api-key']; // Using a custom header for simplicity
+  if (!authKey || authKey !== process.env.SECRET_KEY) {
+    return res.status(401).send({ error: 'Unauthorized' });
   }
   // Updated this based on Elias feedback
   // As this change will allow the user to pass 0 as a value, if no text is set in the text variable,
