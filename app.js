@@ -3,6 +3,7 @@ const express = require('express')
 const axios = require('axios')
 const app = express()
 const port = process.env.PORT || 3000
+
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 
@@ -19,27 +20,20 @@ app.post('/synthesize', async (req, res) => {
   if (!authKey || authKey !== process.env.SECRET_KEY) {
     return res.status(401).send({ error: 'Unauthorized' });
   }
-  // Updated this based on Elias feedback
-  // As this change will allow the user to pass 0 as a value, if no text is set in the text variable,
-  // text will be 0 and the condition will be false so "0" will be used to do TTS.
 
-  // Previous condition
-  // if (text === undefined || text === null || text === '' || text == 0) {
+  let text = req.body.text; // Corrected to fetch text from the request body and use 'let' for potential reassignment
 
   if (!text) {
-    res.status(400).send({ error: 'Text is required.' })
-    return
+    return res.status(400).send({ error: 'Text is required.' });
   }
 
   // Remove double quotes from text
-  text = text.replace(/"/g, '')
+  text = text.replace(/"/g, '');
 
   const voice =
-    req.body.voice == 0
-      ? '21m00Tcm4TlvDq8ikWAM'
-      : req.body.voice || '21m00Tcm4TlvDq8ikWAM'
+    req.body.voice == 0 ? 'M7F2UnwWjBCtMG9CXUq4' : req.body.voice || 'M7F2UnwWjBCtMG9CXUq4';
 
-  const model = req.body.model || 'eleven_multilingual_v2'
+  const model = req.body.model || 'eleven_multilingual_v2';
 
   const voice_settings =
     req.body.voice_settings == 0
@@ -50,13 +44,13 @@ app.post('/synthesize', async (req, res) => {
       : req.body.voice_settings || {
           stability: 0.75,
           similarity_boost: 0.75,
-        }
+        };
 
   try {
     const response = await axios.post(
       `https://api.elevenlabs.io/v1/text-to-speech/${voice}`,
       {
-        text: text.replace(/"/g, '\\"'), // escape inner double quotes ,
+        text: text, // No need to replace here since we already did it above
         voice_settings: voice_settings,
         model_id: model,
       },
@@ -64,22 +58,22 @@ app.post('/synthesize', async (req, res) => {
         headers: {
           'Content-Type': 'application/json',
           accept: 'audio/mpeg',
-          'xi-api-key': `${process.env.ELEVENLABS_API_KEY}`,
+          'xi-api-key': process.env.ELEVENLABS_API_KEY,
         },
         responseType: 'arraybuffer',
       }
-    )
+    );
 
-    const audioBuffer = Buffer.from(response.data, 'binary')
-    const base64Audio = audioBuffer.toString('base64')
-    const audioDataURI = `data:audio/mpeg;base64,${base64Audio}`
-    res.send({ audioDataURI })
+    const audioBuffer = Buffer.from(response.data, 'binary');
+    const base64Audio = audioBuffer.toString('base64');
+    const audioDataURI = `data:audio/mpeg;base64,${base64Audio}`;
+    res.send({ audioDataURI });
   } catch (error) {
-    console.error(error)
-    res.status(500).send('Error occurred while processing the request.')
+    console.error(error);
+    res.status(500).send('Error occurred while processing the request.');
   }
-})
+});
 
 app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`)
-})
+  console.log(`Server is running at http://localhost:${port}`);
+});
